@@ -57,17 +57,32 @@ int main()
 	printf("Waiting for a client to connect...\n");
 	client_addr_len = sizeof(client_addr);
 
-	int client_fd = accept(server_fd, (struct sockaddr *)&client_addr, &client_addr_len);
-	if (client_fd == -1)
+	int client_fd;
+
+	while (client_fd = accept(server_fd, (struct sockaddr *)&client_addr, &client_addr_len))
 	{
-		printf("connection failed: %s...\n", strerror(errno));
-		return 1;
+		if (client_fd == -1)
+		{
+			printf("connection failed: %s...\n", strerror(errno));
+			return 1;
+		}
+		printf("Client connected: %d\n", client_fd);
+
+		char buff[1028];
+		char *response = "+PONG\r\n";
+
+		while (1)
+		{
+			ssize_t read_bytes = read(client_fd, buff, sizeof(buff));
+			if (read_bytes <= 0)
+			{
+				break;
+			}
+			write(client_fd, response, strlen(response));
+		}
+
+		close(client_fd);
 	}
-	printf("Client connected: %d\n", client_fd);
-
-	char *response = "+PONG\r\n";
-	write(client_fd, response, strlen(response));
-
 	close(server_fd);
 
 	return 0;
