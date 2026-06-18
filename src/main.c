@@ -65,7 +65,7 @@ int main()
 	}
 	printf("Client connected: %d\n", client_fd);
 
-	char *response = "PONG\r\n";
+	char *response = "+PONG\r\n";
 	write(client_fd, response, strlen(response));
 
 	close(server_fd);
