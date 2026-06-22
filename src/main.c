@@ -6,9 +6,33 @@
 #include <string.h>
 #include <errno.h>
 #include <unistd.h>
+#include <pthread.h>
+
+void *handle_request(void *args)
+{
+	int client_fd = *(int *)args;
+
+	char buff[1028];
+	char *response = "+PONG\r\n";
+
+	while (1)
+	{
+		ssize_t read_bytes = read(client_fd, buff, sizeof(buff));
+		if (read_bytes <= 0)
+		{
+			break;
+		}
+		write(client_fd, response, strlen(response));
+	}
+
+	close(client_fd);
+
+	pthread_exit(NULL);
+};
 
 int main()
 {
+	pthread_t thread_id;
 	// Disable output buffering
 	setbuf(stdout, NULL);
 	setbuf(stderr, NULL);
@@ -17,7 +41,8 @@ int main()
 	printf("Logs from your program will appear here!\n");
 
 	// Uncomment the code below to pass the first stage
-	int server_fd, client_addr_len;
+	int server_fd;
+	socklen_t client_addr_len;
 	struct sockaddr_in client_addr;
 	server_fd = socket(AF_INET, SOCK_STREAM, 0);
 	if (server_fd == -1)
@@ -57,31 +82,22 @@ int main()
 	printf("Waiting for a client to connect...\n");
 	client_addr_len = sizeof(client_addr);
 
-	int client_fd;
-
-	while (client_fd = accept(server_fd, (struct sockaddr *)&client_addr, &client_addr_len))
+	while (1)
 	{
+		int client_fd = accept(server_fd, (struct sockaddr *)&client_addr, &client_addr_len);
 		if (client_fd == -1)
 		{
 			printf("connection failed: %s...\n", strerror(errno));
-			return 1;
 		}
 		printf("Client connected: %d\n", client_fd);
 
-		char buff[1028];
-		char *response = "+PONG\r\n";
-
-		while (1)
+		int thread_status;
+		thread_status = pthread_create(&thread_id, NULL, &handle_request, &client_fd);
+		if (thread_status != 0)
 		{
-			ssize_t read_bytes = read(client_fd, buff, sizeof(buff));
-			if (read_bytes <= 0)
-			{
-				break;
-			}
-			write(client_fd, response, strlen(response));
+			printf("Failed to open new thread!");
+			close(client_fd);
 		}
-
-		close(client_fd);
 	}
 	close(server_fd);
 
