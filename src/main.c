@@ -1,3 +1,4 @@
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/socket.h>
@@ -10,9 +11,9 @@
 
 void *handle_request(void *args)
 {
-	int client_fd = *(int *)args;
+	int client_fd = (int)(intptr_t)args;
 
-	char buff[1028];
+	char buff[1024];
 	char *response = "+PONG\r\n";
 
 	while (1)
@@ -28,17 +29,21 @@ void *handle_request(void *args)
 	close(client_fd);
 
 	pthread_exit(NULL);
-};
+}
 
 int main()
 {
-	pthread_t thread_id;
 	// Disable output buffering
 	setbuf(stdout, NULL);
 	setbuf(stderr, NULL);
 
 	// You can use print statements as follows for debugging, they'll be visible when running tests.
 	printf("Logs from your program will appear here!\n");
+
+	// setup the attrs of the thread which handles requests
+	pthread_attr_t request_thread_attr;
+	pthread_attr_init(&request_thread_attr);
+	pthread_attr_setdetachstate(&request_thread_attr, PTHREAD_CREATE_DETACHED);
 
 	// Uncomment the code below to pass the first stage
 	int server_fd;
@@ -47,7 +52,7 @@ int main()
 	server_fd = socket(AF_INET, SOCK_STREAM, 0);
 	if (server_fd == -1)
 	{
-		printf("Socket creation failed: %s...\n", strerror(errno));
+		fprintf(stderr, "Socket creation failed: %s...\n", strerror(errno));
 		return 1;
 	}
 
@@ -56,7 +61,7 @@ int main()
 	int reuse = 1;
 	if (setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(reuse)) < 0)
 	{
-		printf("SO_REUSEADDR failed: %s \n", strerror(errno));
+		fprintf(stderr, "SO_REUSEADDR failed: %s \n", strerror(errno));
 		return 1;
 	}
 
@@ -68,14 +73,14 @@ int main()
 
 	if (bind(server_fd, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) != 0)
 	{
-		printf("Bind failed: %s \n", strerror(errno));
+		fprintf(stderr, "Bind failed: %s \n", strerror(errno));
 		return 1;
 	}
 
 	int connection_backlog = 5;
 	if (listen(server_fd, connection_backlog) != 0)
 	{
-		printf("Listen failed: %s \n", strerror(errno));
+		fprintf(stderr, "Listen failed: %s \n", strerror(errno));
 		return 1;
 	}
 
@@ -87,18 +92,22 @@ int main()
 		int client_fd = accept(server_fd, (struct sockaddr *)&client_addr, &client_addr_len);
 		if (client_fd == -1)
 		{
-			printf("connection failed: %s...\n", strerror(errno));
+			fprintf(stderr,"connection failed: %s...\n", strerror(errno));
+			continue;
 		}
 		printf("Client connected: %d\n", client_fd);
 
-		int thread_status;
-		thread_status = pthread_create(&thread_id, NULL, &handle_request, &client_fd);
+		pthread_t thread_id;
+		int thread_status = pthread_create(&thread_id, &request_thread_attr, &handle_request, (void *)(intptr_t)client_fd);
 		if (thread_status != 0)
 		{
-			printf("Failed to open new thread!");
+			fprintf(stderr, "Failed to open new thread!\n");
 			close(client_fd);
 		}
 	}
+
+	// cleanup
+	pthread_attr_destroy(&request_thread_attr);
 	close(server_fd);
 
 	return 0;
