@@ -1,8 +1,6 @@
 #include "commands.h"
 #include "parsers.h"
 #include "writer.h"
-#include <_strings.h>
-#include <_time.h>
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
