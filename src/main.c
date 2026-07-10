@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include "connection.h"
 #include "server.h"
+#include "store.h"
 
 
 int main()
@@ -14,6 +15,7 @@ int main()
 
 	// init
 	connection_init();
+	store_init();
 	server_init();
 
 	// start_server
