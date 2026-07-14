@@ -113,7 +113,7 @@ static void command_get(command_context *ctx, const resp_value *parsed_value) {
 
     store_item *item = get_string_value(elements[1]->data.string.str);
 
-    if(item == NULL || item->expiry_time < currentMillis()) {
+    if(item == NULL || (item->expiry_time >= 0 && item->expiry_time < currentMillis())) {
         write_bulk_string(ctx->client_fd, "", -1);
         return;
     } 
