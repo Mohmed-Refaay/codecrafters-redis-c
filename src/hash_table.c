@@ -56,7 +56,7 @@ ht *create_ht(size_t size) {
     return table;
 }  
 
-ht_item *set_item(ht *table, const char *key, const char *value) {
+ht_item *set_item(ht *table, const char *key, const void *value, const size_t item_size) {
     int item_index = get_available_index_for_key(table, key);
     if (item_index == -1) {
         return NULL;
@@ -66,10 +66,13 @@ ht_item *set_item(ht *table, const char *key, const char *value) {
     if(new_key == NULL) {
         return NULL;
     }
-    char *new_value = strdup(value);
+    void *new_value = malloc(item_size);
     if(new_value == NULL) {
+        free(new_key);
         return NULL;
     }
+    memcpy(new_value, value, item_size);
+
 
     ht_item *item = &table->items[item_index];
 

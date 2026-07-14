@@ -5,7 +5,8 @@
 
 typedef struct hash_table_item {
     char *key;
-    char *value;
+    void *value;
+    size_t item_size;
 } ht_item;
 
 typedef struct hash_table {
@@ -15,7 +16,7 @@ typedef struct hash_table {
 
 ht *create_ht(size_t size);
 
-ht_item *set_item(ht *table, const char *key, const char *value);
+ht_item *set_item(ht *table, const char *key, const void *value, const size_t item_size);
 ht_item *get_item(ht *table, const char *key);
 
 void destroy_ht(ht *table);
